@@ -1,0 +1,52 @@
+
+version: '3.7'
+
+networks:
+  intranet:
+    driver: bridge
+
+services:
+  kratos-migrate:
+    depends_on:
+      - auth-provider
+    container_name: kratos-migrate
+    image: oryd/kratos:v0.8.0-alpha.3
+    environment:
+      - DSN=postgres://auth:secret@auth-provider:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: migrate sql -e --yes
+    volumes:
+      - type: bind
+        source: ./config
+        target: /etc/config/kratos
+    networks:
+      - intranet
+
+  kratos:
+    container_name: kratos
+    depends_on:
+      - kratos-migrate
+    image: oryd/kratos:v0.8.0-alpha.3
+    environment:
+      - DSN=postgres://auth:secret@auth-provider:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: serve -c /etc/config/kratos/kratos.yml --dev
+    volumes:
+      - type: bind
+        source: ./config
+        target: /etc/config/kratos
+    ports:
+      - "4433:4433" # public
+      - "4434:4434" # admin
+    networks:
+      - intranet
+
+  auth-provider:
+    image: postgres:alpine
+    container_name: auth-provider
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=auth
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=auth
+    networks:
+      - intranet

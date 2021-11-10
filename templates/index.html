@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    form {
+      border: 3px solid #f1f1f1;
+    }
+
+    input[type=text],
+    input[type=password],
+    input[type=email] {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #04AA6D;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    .cancelbtn {
+      width: auto;
+      padding: 10px 18px;
+      background-color: #f44336;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .error {
+      color: #FF0000;
+      font-size: 12px;
+      font-weight: bold;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    span.psw {
+      float: right;
+      padding-top: 16px;
+    }
+
+    /* Change styles for span and cancel button on extra small screens */
+    @media screen and (max-width: 300px) {
+      span.psw {
+        display: block;
+        float: none;
+      }
+
+      .cancelbtn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Login Form</h2>
+
+  <form action={{.Action}} method={{.Method}}>
+    <div class="container">
+      {{ if .Messages }}{{ range .Messages }}<div class="error">{{.Text}}</div>{{end}}{{end}}
+      {{ range .Nodes }}
+      {{ if eq .Attributes.UiNodeInputAttributes.Type "submit" }}
+      <button 
+        type="{{.Attributes.UiNodeInputAttributes.Type}}"
+        name="{{.Attributes.UiNodeInputAttributes.Name}}"
+        value="{{.Attributes.UiNodeInputAttributes.Value}}">
+        {{.Meta.Label.Text}}
+      </button>
+      {{ else }}
+      {{ if .Meta.Label }}<label for={{.Attributes.UiNodeInputAttributes.Name}}><b>{{.Meta.Label.Text}}</b></label>{{end}}
+      <input 
+        {{ if .Attributes.UiNodeInputAttributes.Disabled }}disabled{{end}}
+        {{ if .Attributes.UiNodeInputAttributes.Required }}required{{end}}
+        type={{.Attributes.UiNodeInputAttributes.Type}}
+        {{ if .Meta.Label }}placeholder="Enter {{.Meta.Label.Text}}"{{end}}
+        name={{.Attributes.UiNodeInputAttributes.Name}} value={{.Attributes.UiNodeInputAttributes.Value}}>
+      {{ if .Messages }}{{ range .Messages}}<div class="error">{{.Text}}</div>{{end}}{{end}}
+      {{ end }}
+      {{ end }}
+      <!-- <label>
+      <input type="checkbox" checked="checked" name="remember"> Remember me
+    </label> -->
+    </div>
+
+    <div class="container" style="background-color:#f1f1f1">
+      <button type="button" class="cancelbtn">Cancel</button>
+      <!-- <span class="psw">Forgot <a href="#">password?</a></span> -->
+    </div>
+  </form>
+
+</body>
+
+</html>

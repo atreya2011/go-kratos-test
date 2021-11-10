@@ -19,6 +19,52 @@ services:
     networks:
       - intranet
 
+  hydra-migrate:
+    depends_on:
+      - auth-provider
+      - kratos-migrate
+    container_name: hydra-migrate
+    image: oryd/hydra:v1.10.6
+    environment:
+      - DSN=postgres://auth:secret@auth-provider:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+    command: migrate sql -e --yes
+    volumes:
+      - type: bind
+        source: ./config
+        target: /etc/config/hydra
+    networks:
+      - intranet
+
+  hydra:
+    container_name: hydra
+    image: oryd/hydra:v1.10.6
+    depends_on:
+      - hydra-migrate
+    ports:
+      - "4444:4444" # Public port
+      - "4445:4445" # Admin port
+      - "5555:5555" # Port for hydra token user
+    command:
+      serve all --dangerous-force-http
+    restart: on-failure # TODO figure out why we need this (incorporate health check into hydra migrate command?)
+    environment:
+      - LOG_LEAK_SENSITIVE_VALUES=true
+      - URLS_SELF_ISSUER=http://127.0.0.1:4444
+      - URLS_SELF_PUBLIC=http://127.0.0.1:4444
+      - URLS_CONSENT=http://127.0.0.1:4455/auth/consent
+      - URLS_LOGIN=http://127.0.0.1:4455/auth/login
+      - URLS_LOGOUT=http://127.0.0.1:4455/logout
+      - SECRETS_SYSTEM=youReallyNeedToChangeThis
+      - OIDC_SUBJECT_IDENTIFIERS_SUPPORTED_TYPES=public,pairwise
+      - OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT=youReallyNeedToChangeThis
+      - DSN=postgres://auth:secret@auth-provider:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+    networks:
+      - intranet
+    volumes:
+      - type: bind
+        source: ./config
+        target: /etc/config/kratos
+
   kratos:
     container_name: kratos
     depends_on:

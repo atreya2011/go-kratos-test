@@ -19,6 +19,11 @@ selfservice:
     password:
       enabled: true
 
+    link:
+      enabled: true
+      config:
+        lifespan: 15m
+
   flows:
     error:
       ui_url: http://127.0.0.1:4455/error
@@ -35,24 +40,26 @@ selfservice:
       enabled: true
       ui_url: http://127.0.0.1:4455/verification
       after:
-        default_browser_return_url: http://127.0.0.1:4455/
+        default_browser_return_url: http://127.0.0.1:4455/verified
 
     logout:
       after:
         default_browser_return_url: http://127.0.0.1:4455/login
 
     login:
-      ui_url: http://127.0.0.1:4455/login
       lifespan: 10m
+      ui_url: http://127.0.0.1:4455/login
+      after:
+        default_browser_return_url: "http://127.0.0.1:4455/dashboard"
+        password:
+          hooks:
+            - hook: require_verified_address
 
     registration:
       lifespan: 10m
       ui_url: http://127.0.0.1:4455/registration
       after:
-        password:
-          hooks:
-            -
-              hook: session
+        default_browser_return_url: http://127.0.0.1:4455/registered
 
 log:
   level: debug

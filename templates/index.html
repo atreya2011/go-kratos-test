@@ -2,115 +2,76 @@
 <html>
 
 <head>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    form {
-      border: 3px solid #f1f1f1;
-    }
-
-    input[type=text],
-    input[type=password],
-    input[type=email] {
-      width: 100%;
-      padding: 12px 20px;
-      margin: 8px 0;
-      display: inline-block;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-
-    button {
-      background-color: #04AA6D;
-      color: white;
-      padding: 14px 20px;
-      margin: 8px 0;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    button:hover {
-      opacity: 0.8;
-    }
-
-    .cancelbtn {
-      width: auto;
-      padding: 10px 18px;
-      background-color: #f44336;
-    }
-
-    .container {
-      padding: 16px;
-    }
-
-    .error {
-      color: #FF0000;
-      font-size: 12px;
-      font-weight: bold;
-      padding-top: 8px;
-      padding-bottom: 8px;
-    }
-
-    span.psw {
-      float: right;
-      padding-top: 16px;
-    }
-
-    /* Change styles for span and cancel button on extra small screens */
-    @media screen and (max-width: 300px) {
-      span.psw {
-        display: block;
-        float: none;
-      }
-
-      .cancelbtn {
-        width: 100%;
-      }
-    }
-  </style>
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
 </head>
 
-<body>
-
-  <h2>Login Form</h2>
-
-  <form action={{.Action}} method={{.Method}}>
-    <div class="container">
-      {{ if .Messages }}{{ range .Messages }}<div class="error">{{.Text}}</div>{{end}}{{end}}
-      {{ range .Nodes }}
-      {{ if eq .Attributes.UiNodeInputAttributes.Type "submit" }}
-      <button 
-        type="{{.Attributes.UiNodeInputAttributes.Type}}"
-        name="{{.Attributes.UiNodeInputAttributes.Name}}"
-        value="{{.Attributes.UiNodeInputAttributes.Value}}">
-        {{.Meta.Label.Text}}
-      </button>
-      {{ else }}
-      {{ if .Meta.Label }}<label for={{.Attributes.UiNodeInputAttributes.Name}}><b>{{.Meta.Label.Text}}</b></label>{{end}}
-      <input 
-        {{ if .Attributes.UiNodeInputAttributes.Disabled }}disabled{{end}}
-        {{ if .Attributes.UiNodeInputAttributes.Required }}required{{end}}
-        type={{.Attributes.UiNodeInputAttributes.Type}}
-        {{ if .Meta.Label }}placeholder="Enter {{.Meta.Label.Text}}"{{end}}
-        name={{.Attributes.UiNodeInputAttributes.Name}} value={{.Attributes.UiNodeInputAttributes.Value}}>
-      {{ if .Messages }}{{ range .Messages}}<div class="error">{{.Text}}</div>{{end}}{{end}}
-      {{ end }}
-      {{ end }}
-      <!-- <label>
-      <input type="checkbox" checked="checked" name="remember"> Remember me
-    </label> -->
+<body class="bg-gray-100">
+  <div class="w-full max-w-lg mx-auto">
+    <div class="flex items-center justify-between mt-5 mb-3">
+      <p class="font-semibold text-2xl">{{.Title}}</p>
     </div>
-
-    <div class="container" style="background-color:#f1f1f1">
-      <button type="button" class="cancelbtn">Cancel</button>
-      <!-- <span class="psw">Forgot <a href="#">password?</a></span> -->
+    {{ if .Details }}
+    <code class="px-2 py-3 mb-3 appearance-none block bg-gray-700 text-white rounded whitespace-pre overflow-auto text-sm">{{.Details}}</code>
+    {{ end }}
+    {{ if eq .Title "Registration Complete" }}<p class="font-semibold my-3 leading-tight tracking-wide">We have sent a verification mail to you. Please check.</p>{{ end }}
+    {{ if eq .Title "Verification Complete" }}
+    <p class="font-semibold my-3 leading-tight tracking-wide">
+      Thank you for verifying your email address.
+      <span><a class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" href="/login">Click here to login</a></span>
+    </p>
+    {{ end }}
+    <div class="border shadow appearance-none bg-white rounded px-8 pt-6 pb-8 mb-4">
+      {{if .UI}}
+      <form action={{.UI.Action}} method={{.UI.Method}} class="space-y-4">
+          {{ if .UI.Messages }}{{ range .UI.Messages }}<div class="{{ if eq .Type "error"}}bg-red-500{{ else }}bg-green-500{{ end }} text-white rounded px-4 py-3 text-sm">{{.Text}}</div>{{ end }}{{ end }}
+          {{ range .UI.Nodes }}
+          {{ if eq .Attributes.UiNodeInputAttributes.Type "submit" }}
+          <div class="flex flex-wrap items-center justify-between space-y-4">
+            <button 
+              class="w-full bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              type="{{.Attributes.UiNodeInputAttributes.Type}}"
+              name="{{.Attributes.UiNodeInputAttributes.Name}}"
+              value="{{.Attributes.UiNodeInputAttributes.Value}}">
+              {{.Meta.Label.Text}}
+            </button>
+          </div>
+          {{ else }}
+          <div {{ if eq .Attributes.UiNodeInputAttributes.Type "hidden" }}class="-mb-2"{{ end }}>
+            {{ if .Meta.Label }}
+            <label 
+              for={{.Attributes.UiNodeInputAttributes.Name}} 
+              class="block text-gray-700 text-sm font-semibold mb-0.5">
+              {{.Meta.Label.Text}}
+            </label>
+            {{ end }}
+            <input
+              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              {{ if .Attributes.UiNodeInputAttributes.Disabled }}disabled{{ end }}
+              {{ if .Attributes.UiNodeInputAttributes.Required }}required{{ end }}
+              type={{.Attributes.UiNodeInputAttributes.Type}}
+              {{ if .Meta.Label }}placeholder="Enter {{.Meta.Label.Text}}"{{ end }}
+              name={{.Attributes.UiNodeInputAttributes.Name}}
+              value={{.Attributes.UiNodeInputAttributes.Value}}>
+            {{ if .Messages }}{{ range .Messages}}<div class="text-red-600 text-xs mb-2">{{.Text}}</div>{{ end }}{{ end }}
+          {{ end }}
+          </div>
+          {{ end }}
+      </form>
+      {{ end }}
+      {{ if eq .Title "Login" }}
+      <div class="flex items-center justify-between mb-5">
+        <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/registration">
+          Register
+        </a>
+        <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/verification">
+          Resend Verification Email
+        </a>
+      </div>
+      {{ end }}
     </div>
-  </form>
-
+  </div>
 </body>
 
 </html>

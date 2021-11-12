@@ -11,6 +11,15 @@
   <div class="w-full max-w-lg mx-auto">
     <div class="flex items-center justify-between mt-5 mb-3">
       <p class="font-semibold text-2xl">{{.Title}}</p>
+      {{ if eq .Title "Session Details" }}
+      <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/logout">
+        Logout
+      </a>
+      {{ else if ne .Title "Login" }}
+      <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/login">
+        Back
+      </a>
+      {{ end }}
     </div>
     {{ if .Details }}
     <code class="px-2 py-3 mb-3 appearance-none block bg-gray-700 text-white rounded whitespace-pre overflow-auto text-sm">{{.Details}}</code>

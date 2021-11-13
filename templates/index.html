@@ -16,7 +16,12 @@
         Logout
       </a>
       {{ else if ne .Title "Login" }}
-      <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/login">
+      <a class="group appearance-none inline-flex align-self-center font-semibold text-xl text-blue-500 hover:text-blue-800" href="/login">
+        <span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="mr-1.5 inline-flex align-self-center h-4 w-4 text-blue-500 group-hover:text-blue-800" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+          </svg>
+        </span>
         Back
       </a>
       {{ end }}

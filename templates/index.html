@@ -8,8 +8,8 @@
 </head>
 
 <body class="bg-gray-100">
-  <div class="w-full max-w-lg mx-auto">
-    <div class="flex items-center justify-between mt-5 mb-3">
+  <div class="flex flex-col justify-center w-full h-screen max-w-lg m-auto">
+    <div class="flex items-center justify-between mb-3">
       <p class="font-semibold text-2xl">{{.Title}}</p>
       {{ if eq .Title "Session Details" }}
       <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/logout">
@@ -31,13 +31,13 @@
       <span><a class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" href="/login">Click here to login</a></span>
     </p>
     {{ end }}
-    <div class="border shadow appearance-none bg-white rounded px-8 pt-6 pb-8 mb-4">
+    <div class="border shadow appearance-none bg-white rounded px-7 py-3">
       {{if .UI}}
-      <form action={{.UI.Action}} method={{.UI.Method}} class="space-y-4">
+      <form action={{.UI.Action}} method={{.UI.Method}} class="space-y-6">
           {{ if .UI.Messages }}{{ range .UI.Messages }}<div class="{{ if eq .Type "error"}}bg-red-500{{ else }}bg-green-500{{ end }} text-white rounded px-4 py-3 text-sm">{{.Text}}</div>{{ end }}{{ end }}
           {{ range .UI.Nodes }}
           {{ if eq .Attributes.UiNodeInputAttributes.Type "submit" }}
-          <div class="flex flex-wrap items-center justify-between space-y-4">
+          <div class="flex flex-wrap items-center justify-between">
             <button 
               class="w-full bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
               type="{{.Attributes.UiNodeInputAttributes.Type}}"
@@ -64,13 +64,13 @@
               name={{.Attributes.UiNodeInputAttributes.Name}}
               value={{.Attributes.UiNodeInputAttributes.Value}}>
             {{ if .Messages }}{{ range .Messages}}<div class="text-red-600 text-xs mb-2">{{.Text}}</div>{{ end }}{{ end }}
-          {{ end }}
           </div>
+          {{ end }}
           {{ end }}
       </form>
       {{ end }}
       {{ if eq .Title "Login" }}
-      <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center justify-between mt-3.5 mb-1">
         <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/registration">
           Register
         </a>

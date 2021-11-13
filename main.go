@@ -34,6 +34,8 @@ func main() {
 	http.HandleFunc("/registered", handleRegistered)
 	http.HandleFunc("/dashboard", handleDashboard)
 	http.HandleFunc("/verified", handleVerified)
+	http.HandleFunc("/recovery", handleRecovery)
+	http.HandleFunc("/settings", handleSettings)
 	log.Fatalln(http.ListenAndServe(":4455", http.DefaultServeMux))
 }
 
@@ -192,6 +194,72 @@ func handleVerified(w http.ResponseWriter, r *http.Request) {
 		Title: "Verification Complete",
 	}
 	// render template error.html
+	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
+	if err := tmpl.Execute(w, templateData); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+	}
+}
+
+// handleRecovery handles kratos recovery flow
+func handleRecovery(w http.ResponseWriter, r *http.Request) {
+	redirectTo := "http://127.0.0.1:4433/self-service/recovery/browser"
+
+	// get flowID from url query parameters
+	flowID := r.URL.Query().Get("flow")
+
+	// if there is no flow id in url query parameters, create a new flow
+	if flowID == "" {
+		http.Redirect(w, r, redirectTo, http.StatusFound)
+		return
+	}
+
+	// get cookie from headers
+	cookie := r.Header.Get("cookie")
+	// get self-service recovery flow for browser
+	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceRecoveryFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	templateData := templateData{
+		Title: "Password Recovery Form",
+		UI:    &flow.Ui,
+	}
+	// render template index.html
+	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
+	if err := tmpl.Execute(w, templateData); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+	}
+}
+
+// handleSettings handles kratos settings flow
+func handleSettings(w http.ResponseWriter, r *http.Request) {
+	redirectTo := "http://127.0.0.1:4433/self-service/settings/browser"
+
+	// get flowID from url query parameters
+	flowID := r.URL.Query().Get("flow")
+
+	// if there is no flow id in url query parameters, create a new flow
+	if flowID == "" {
+		http.Redirect(w, r, redirectTo, http.StatusFound)
+		return
+	}
+
+	// get cookie from headers
+	cookie := r.Header.Get("cookie")
+	// get self-service recovery flow for browser
+	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceSettingsFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	templateData := templateData{
+		Title: "Settings",
+		UI:    &flow.Ui,
+	}
+	// render template index.html
 	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
 	if err := tmpl.Execute(w, templateData); err != nil {
 		writeError(w, http.StatusInternalServerError, err)

@@ -66,9 +66,15 @@ func main() {
 
 // handleAcceptLogin handles accepts login request from hydra
 func handleAcceptLogin(w http.ResponseWriter, r *http.Request) {
+	// get ory_kratos_session from cookies
+	cookie, err := r.Cookie("ory_kratos_session")
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
 	// get login challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
-	subject := "test"
+	subject := cookie.Value
 	// accept hydra login request
 	res, err := hydraClient.Admin.AcceptLoginRequest(&hydra_admin.AcceptLoginRequestParams{
 		Context:        ctx,
@@ -83,7 +89,6 @@ func handleAcceptLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	log.Println(*res.GetPayload().RedirectTo)
 	http.Redirect(w, r, *res.GetPayload().RedirectTo, http.StatusFound)
 }
 
@@ -91,13 +96,12 @@ func handleAcceptLogin(w http.ResponseWriter, r *http.Request) {
 func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// get login challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
-	log.Println(challenge)
 
 	// build return_to url with hydra login challenge as url query parameter
 	returnToParams := url.Values{
 		"login_challenge": []string{challenge},
 	}
-	returnTo := "/?" + returnToParams.Encode()
+	returnTo := "/acceptLogin?" + returnToParams.Encode()
 	// build redirect url with return_to as url query parameter
 	redirectToParam := url.Values{
 		"return_to": []string{returnTo},

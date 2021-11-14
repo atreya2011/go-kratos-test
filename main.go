@@ -45,20 +45,17 @@ func main() {
 // handleLogin handles kratos login flow
 func handleLogin(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get the login flow
-	loginFlow, _, err := kratosClient.V0alpha2Api.GetSelfServiceLoginFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceLoginFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
 	}
 	templateData := templateData{
 		Title: "Login",
-		UI:    &loginFlow.Ui,
+		UI:    &flow.Ui,
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // handleLogout handles kratos logout flow
@@ -100,29 +97,23 @@ func handleError(w http.ResponseWriter, r *http.Request) {
 		Details: string(errorDetailsJSON),
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // handleRegister handles kratos registration flow
 func handleRegister(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get the registration flow
-	registrationFlow, _, err := kratosClient.V0alpha2Api.GetSelfServiceRegistrationFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceRegistrationFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
 	}
 	templateData := templateData{
 		Title: "Registration",
-		UI:    &registrationFlow.Ui,
+		UI:    &flow.Ui,
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // handleVerification handles kratos verification flow
@@ -139,10 +130,7 @@ func handleVerification(w http.ResponseWriter, r *http.Request, cookie, flowID s
 		UI:    &flow.Ui,
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // handleRegistered displays registration complete message to user
@@ -150,11 +138,8 @@ func handleRegistered(w http.ResponseWriter, r *http.Request) {
 	templateData := templateData{
 		Title: "Registration Complete",
 	}
-	// render template error.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	// render template index.html
+	templateData.Render(w)
 }
 
 // handleVerified displays verfification complete message to user
@@ -162,11 +147,8 @@ func handleVerified(w http.ResponseWriter, r *http.Request) {
 	templateData := templateData{
 		Title: "Verification Complete",
 	}
-	// render template error.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	// render template index.html
+	templateData.Render(w)
 }
 
 // handleRecovery handles kratos recovery flow
@@ -183,10 +165,7 @@ func handleRecovery(w http.ResponseWriter, r *http.Request, cookie, flowID strin
 		UI:    &flow.Ui,
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // handleSettings handles kratos settings flow
@@ -203,10 +182,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request, cookie, flowID strin
 		UI:    &flow.Ui,
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // handleDashboard shows dashboard
@@ -232,10 +208,7 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 		Details: string(sessionJSON),
 	}
 	// render template index.html
-	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
-	if err := tmpl.Execute(w, templateData); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-	}
+	templateData.Render(w)
 }
 
 // NewKratosSDKForSelfHosted creates a new kratos client for self hosted server
@@ -305,5 +278,14 @@ func ensureCookieReferer(next http.HandlerFunc) http.HandlerFunc {
 
 		// call next handler
 		next(w, r)
+	}
+}
+
+// Render renders template with provided data
+func (td *templateData) Render(w http.ResponseWriter) {
+	// render template index.html
+	tmpl := template.Must(template.ParseFS(templates, "templates/index.html"))
+	if err := tmpl.Execute(w, td); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
 	}
 }

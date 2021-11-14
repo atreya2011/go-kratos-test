@@ -36,8 +36,8 @@
       <span><a class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" href="/login">Click here to login</a></span>
     </p>
     {{ end }}
+    {{if .UI}}
     <div class="border shadow appearance-none bg-white rounded px-7 py-3">
-      {{if .UI}}
       <form action={{.UI.Action}} method={{.UI.Method}} class="space-y-6">
           {{ if .UI.Messages }}{{ range .UI.Messages }}<div class="{{ if eq .Type "error"}}bg-red-500{{ else }}bg-green-500{{ end }} text-white rounded px-4 py-3 text-sm">{{.Text}}</div>{{ end }}{{ end }}
           {{ range .UI.Nodes }}
@@ -86,8 +86,8 @@
           Resend Verification Email
         </a>
       </div>
-      {{ end }}
     </div>
+    {{ end }}
   </div>
 </body>
 

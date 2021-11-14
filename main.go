@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"strings"
 
 	kratos "github.com/ory/kratos-client-go"
 )
@@ -33,9 +34,9 @@ func main() {
 	http.HandleFunc("/error", handleError)
 	http.HandleFunc("/registration", ensureCookieFlowID("registration", handleRegister))
 	http.HandleFunc("/verification", ensureCookieFlowID("verification", handleVerification))
-	http.HandleFunc("/registered", handleRegistered)
+	http.HandleFunc("/registered", ensureCookieReferer(handleRegistered))
 	http.HandleFunc("/dashboard", handleDashboard)
-	http.HandleFunc("/verified", handleVerified)
+	http.HandleFunc("/verified", ensureCookieReferer(handleVerified))
 	http.HandleFunc("/recovery", ensureCookieFlowID("recovery", handleRecovery))
 	http.HandleFunc("/settings", ensureCookieFlowID("settings", handleSettings))
 	log.Fatalln(http.ListenAndServe(":4455", http.DefaultServeMux))
@@ -280,5 +281,29 @@ func ensureCookieFlowID(flowType string, next func(w http.ResponseWriter, r *htt
 
 		// call next handler
 		next(w, r, cookie, flowID)
+	}
+}
+
+// ensureCookieReferer is a middleware function that ensures that cookie in header contains csrf_token and referer is not empty
+func ensureCookieReferer(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// get cookie from headers
+		cookie := r.Header.Get("cookie")
+		// if there is no csrf_token in cookie, return error
+		if !strings.Contains(cookie, "csrf_token") {
+			writeError(w, http.StatusUnauthorized, errors.New(http.StatusText(int(http.StatusUnauthorized))))
+			return
+		}
+
+		// get referer from headers
+		referer := r.Header.Get("referer")
+		// if there is no referer in header, return error
+		if referer == "" {
+			writeError(w, http.StatusBadRequest, errors.New(http.StatusText(int(http.StatusUnauthorized))))
+			return
+		}
+
+		// call next handler
+		next(w, r)
 	}
 }

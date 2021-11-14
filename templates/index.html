@@ -27,7 +27,7 @@
       {{ end }}
     </div>
     {{ if .Details }}
-    <code class="px-2 py-3 mb-3 appearance-none block bg-gray-700 text-white rounded whitespace-pre overflow-auto text-sm">{{.Details}}</code>
+    <code style="height: 36rem" class="px-2 py-3 appearance-none block bg-gray-700 text-white rounded whitespace-pre overflow-auto text-sm">{{.Details}}</code>
     {{ end }}
     {{ if eq .Title "Registration Complete" }}<p class="font-semibold my-3 leading-tight tracking-wide">We have sent a verification mail to you. Please check.</p>{{ end }}
     {{ if eq .Title "Verification Complete" }}

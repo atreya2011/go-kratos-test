@@ -20,7 +20,6 @@ import (
 	kratos "github.com/ory/kratos-client-go"
 )
 
-var hydraClient = NewHydraSDKForSelfHosted("127.0.0.1:4445")
 var ctx = context.Background()
 
 //go:embed templates
@@ -37,12 +36,14 @@ type templateData struct {
 type server struct {
 	KratosAPIClient      *kratos.APIClient
 	KratosPublicEndpoint string
+	HydraAPIClient       *hydra.OryHydra
+	HydraPublicEndpoint  string
 	Port                 string
 }
 
 func main() {
 	// create server
-	s, err := NewServer(4433)
+	s, err := NewServer(4433, 4445)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -58,24 +59,37 @@ func main() {
 	http.HandleFunc("/recovery", s.ensureCookieFlowID("recovery", s.handleRecovery))
 	http.HandleFunc("/settings", s.ensureCookieFlowID("settings", s.handleSettings))
 
+	http.HandleFunc("/auth/login", s.handleHydraLogin)
+	http.HandleFunc("/auth/consent", s.handleHydraConsent)
+	http.HandleFunc("/acceptLogin", s.handleAcceptLogin)
+
 	// start server
 	log.Println("Auth Server listening on port 4455")
 	log.Fatalln(http.ListenAndServe(s.Port, http.DefaultServeMux))
 }
 
 // handleAcceptLogin handles accepts login request from hydra
-func handleAcceptLogin(w http.ResponseWriter, r *http.Request) {
-	// get ory_kratos_session from cookies
-	cookie, err := r.Cookie("ory_kratos_session")
+func (s *server) handleAcceptLogin(w http.ResponseWriter, r *http.Request) {
+	// get cookie from headers
+	cookie := r.Header.Get("cookie")
+	// get session details
+	session, _, err := s.KratosAPIClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
+	// marshal session.identity.traits to json
+	traitsJSON, err := json.Marshal(session.Identity.Traits)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	// get login challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
-	subject := cookie.Value
+	subject := string(traitsJSON)
 	// accept hydra login request
-	res, err := hydraClient.Admin.AcceptLoginRequest(&hydra_admin.AcceptLoginRequestParams{
+	res, err := s.HydraAPIClient.Admin.AcceptLoginRequest(&hydra_admin.AcceptLoginRequestParams{
 		Context:        ctx,
 		LoginChallenge: challenge,
 		Body: &hydra_models.AcceptLoginRequest{
@@ -105,7 +119,7 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	redirectToParam := url.Values{
 		"return_to": []string{returnTo},
 	}
-	redirectTo := "http://127.0.0.1:4433/self-service/login/browser?" + redirectToParam.Encode()
+	redirectTo := fmt.Sprintf("%s/self-service/login/browser?", s.KratosPublicEndpoint) + redirectToParam.Encode()
 
 	// get flowID from url query parameters
 	flowID := r.URL.Query().Get("flow")
@@ -286,10 +300,10 @@ func (s *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleHydraLogin handles login request from hydra
-func handleHydraLogin(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleHydraLogin(w http.ResponseWriter, r *http.Request) {
 	// get challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
-	_, err := hydraClient.Admin.GetLoginRequest(&hydra_admin.GetLoginRequestParams{
+	_, err := s.HydraAPIClient.Admin.GetLoginRequest(&hydra_admin.GetLoginRequestParams{
 		Context:        ctx,
 		LoginChallenge: challenge,
 	})
@@ -306,7 +320,7 @@ func handleHydraLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleHydraConsent shows hydra consent screen
-func handleHydraConsent(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	// get consent challenge from url query parameters
 	challenge := r.URL.Query().Get("consent_challenge")
 
@@ -319,7 +333,7 @@ func handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get consent request
-	_, err := hydraClient.Admin.GetConsentRequest(&hydra_admin.GetConsentRequestParams{
+	_, err := s.HydraAPIClient.Admin.GetConsentRequest(&hydra_admin.GetConsentRequestParams{
 		Context:          ctx,
 		ConsentChallenge: challenge,
 	})
@@ -329,7 +343,7 @@ func handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// accept consent request
-	acceptConsentRes, err := hydraClient.Admin.AcceptConsentRequest(&hydra_admin.AcceptConsentRequestParams{
+	acceptConsentRes, err := s.HydraAPIClient.Admin.AcceptConsentRequest(&hydra_admin.AcceptConsentRequestParams{
 		Context:          ctx,
 		ConsentChallenge: challenge,
 		Body: &hydra_models.AcceptConsentRequest{
@@ -345,7 +359,7 @@ func handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, *acceptConsentRes.GetPayload().RedirectTo, http.StatusFound)
 }
 
-func NewServer(kratosPublicEndpointPort int) (*server, error) {
+func NewServer(kratosPublicEndpointPort, hydraPublicEndpointPort int) (*server, error) {
 	// create a new kratos client for self hosted server
 	conf := kratos.NewConfiguration()
 	conf.Servers = kratos.ServerConfigurations{{URL: fmt.Sprintf("http://kratos:%d", kratosPublicEndpointPort)}}
@@ -357,17 +371,14 @@ func NewServer(kratosPublicEndpointPort int) (*server, error) {
 	return &server{
 		KratosAPIClient:      kratos.NewAPIClient(conf),
 		KratosPublicEndpoint: fmt.Sprintf("http://localhost:%d", kratosPublicEndpointPort),
-		Port:                 ":4455",
+		HydraAPIClient: hydra.NewHTTPClientWithConfig(strfmt.Default, &hydra.TransportConfig{
+			BasePath: "/",
+			Host:     fmt.Sprintf("hydra:%d", hydraPublicEndpointPort),
+			Schemes:  []string{"http"},
+		}),
+		HydraPublicEndpoint: fmt.Sprintf("http://localhost:%d", hydraPublicEndpointPort),
+		Port:                ":4455",
 	}, nil
-}
-
-// NewHydraSDKForSelfHosted creates a new hydra client for self hosted server
-func NewHydraSDKForSelfHosted(endpoint string) *hydra.OryHydra {
-	return hydra.NewHTTPClientWithConfig(strfmt.Default, &hydra.TransportConfig{
-		BasePath: "/",
-		Host:     endpoint,
-		Schemes:  []string{"http"},
-	})
 }
 
 // writeError writes error to the response

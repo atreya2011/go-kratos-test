@@ -15,7 +15,6 @@ import (
 	kratos "github.com/ory/kratos-client-go"
 )
 
-var kratosClient = NewKratosSDKForSelfHosted("http://127.0.0.1:4433")
 var ctx = context.Background()
 
 //go:embed templates
@@ -28,24 +27,40 @@ type templateData struct {
 	Details string
 }
 
+// server contains server information
+type server struct {
+	KratosAPIClient      *kratos.APIClient
+	KratosPublicEndpoint string
+	Port                 string
+}
+
 func main() {
-	http.HandleFunc("/login", ensureCookieFlowID("login", handleLogin))
-	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/error", handleError)
-	http.HandleFunc("/registration", ensureCookieFlowID("registration", handleRegister))
-	http.HandleFunc("/verification", ensureCookieFlowID("verification", handleVerification))
-	http.HandleFunc("/registered", ensureCookieReferer(handleRegistered))
-	http.HandleFunc("/dashboard", handleDashboard)
-	http.HandleFunc("/verified", ensureCookieReferer(handleVerified))
-	http.HandleFunc("/recovery", ensureCookieFlowID("recovery", handleRecovery))
-	http.HandleFunc("/settings", ensureCookieFlowID("settings", handleSettings))
-	log.Fatalln(http.ListenAndServe(":4455", http.DefaultServeMux))
+	// create server
+	s, err := NewServer("http://127.0.0.1:4433")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	http.HandleFunc("/login", s.ensureCookieFlowID("login", s.handleLogin))
+	http.HandleFunc("/logout", s.handleLogout)
+	http.HandleFunc("/error", s.handleError)
+	http.HandleFunc("/registration", s.ensureCookieFlowID("registration", s.handleRegister))
+	http.HandleFunc("/verification", s.ensureCookieFlowID("verification", s.handleVerification))
+	http.HandleFunc("/registered", ensureCookieReferer(s.handleRegistered))
+	http.HandleFunc("/dashboard", s.handleDashboard)
+	http.HandleFunc("/verified", ensureCookieReferer(s.handleVerified))
+	http.HandleFunc("/recovery", s.ensureCookieFlowID("recovery", s.handleRecovery))
+	http.HandleFunc("/settings", s.ensureCookieFlowID("settings", s.handleSettings))
+
+	// start server
+	log.Println("Auth Server listening on port 4455")
+	log.Fatalln(http.ListenAndServe(s.Port, http.DefaultServeMux))
 }
 
 // handleLogin handles kratos login flow
-func handleLogin(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
+func (s *server) handleLogin(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get the login flow
-	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceLoginFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := s.KratosAPIClient.V0alpha2Api.GetSelfServiceLoginFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
@@ -59,11 +74,11 @@ func handleLogin(w http.ResponseWriter, r *http.Request, cookie, flowID string) 
 }
 
 // handleLogout handles kratos logout flow
-func handleLogout(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	// get cookie from headers
 	cookie := r.Header.Get("cookie")
 	// create self-service logout flow for browser
-	flow, _, err := kratosClient.V0alpha2Api.CreateSelfServiceLogoutFlowUrlForBrowsers(ctx).Cookie(cookie).Execute()
+	flow, _, err := s.KratosAPIClient.V0alpha2Api.CreateSelfServiceLogoutFlowUrlForBrowsers(ctx).Cookie(cookie).Execute()
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -77,11 +92,11 @@ func handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleError handles login/registration error
-func handleError(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleError(w http.ResponseWriter, r *http.Request) {
 	// get url query parameters
 	errorID := r.URL.Query().Get("id")
 	// get error details
-	errorDetails, _, err := kratosClient.V0alpha2Api.GetSelfServiceError(ctx).Id(errorID).Execute()
+	errorDetails, _, err := s.KratosAPIClient.V0alpha2Api.GetSelfServiceError(ctx).Id(errorID).Execute()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -101,9 +116,9 @@ func handleError(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRegister handles kratos registration flow
-func handleRegister(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
+func (s *server) handleRegister(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get the registration flow
-	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceRegistrationFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := s.KratosAPIClient.V0alpha2Api.GetSelfServiceRegistrationFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
@@ -117,9 +132,9 @@ func handleRegister(w http.ResponseWriter, r *http.Request, cookie, flowID strin
 }
 
 // handleVerification handles kratos verification flow
-func handleVerification(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
+func (s *server) handleVerification(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get self-service verification flow for browser
-	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceVerificationFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := s.KratosAPIClient.V0alpha2Api.GetSelfServiceVerificationFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
@@ -134,7 +149,7 @@ func handleVerification(w http.ResponseWriter, r *http.Request, cookie, flowID s
 }
 
 // handleRegistered displays registration complete message to user
-func handleRegistered(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleRegistered(w http.ResponseWriter, r *http.Request) {
 	templateData := templateData{
 		Title: "Registration Complete",
 	}
@@ -143,7 +158,7 @@ func handleRegistered(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleVerified displays verfification complete message to user
-func handleVerified(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleVerified(w http.ResponseWriter, r *http.Request) {
 	templateData := templateData{
 		Title: "Verification Complete",
 	}
@@ -152,9 +167,9 @@ func handleVerified(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRecovery handles kratos recovery flow
-func handleRecovery(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
+func (s *server) handleRecovery(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get self-service recovery flow for browser
-	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceRecoveryFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := s.KratosAPIClient.V0alpha2Api.GetSelfServiceRecoveryFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
@@ -169,9 +184,9 @@ func handleRecovery(w http.ResponseWriter, r *http.Request, cookie, flowID strin
 }
 
 // handleSettings handles kratos settings flow
-func handleSettings(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
+func (s *server) handleSettings(w http.ResponseWriter, r *http.Request, cookie, flowID string) {
 	// get self-service recovery flow for browser
-	flow, _, err := kratosClient.V0alpha2Api.GetSelfServiceSettingsFlow(ctx).Id(flowID).Cookie(cookie).Execute()
+	flow, _, err := s.KratosAPIClient.V0alpha2Api.GetSelfServiceSettingsFlow(ctx).Id(flowID).Cookie(cookie).Execute()
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err)
 		return
@@ -186,11 +201,11 @@ func handleSettings(w http.ResponseWriter, r *http.Request, cookie, flowID strin
 }
 
 // handleDashboard shows dashboard
-func handleDashboard(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	// get cookie from headers
 	cookie := r.Header.Get("cookie")
 	// get session details
-	session, _, err := kratosClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
+	session, _, err := s.KratosAPIClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
@@ -211,13 +226,20 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	templateData.Render(w)
 }
 
-// NewKratosSDKForSelfHosted creates a new kratos client for self hosted server
-func NewKratosSDKForSelfHosted(endpoint string) *kratos.APIClient {
+func NewServer(kratosPublicEndpoint string) (*server, error) {
+	// create a new kratos client for self hosted server
 	conf := kratos.NewConfiguration()
-	conf.Servers = kratos.ServerConfigurations{{URL: endpoint}}
-	cj, _ := cookiejar.New(nil)
+	conf.Servers = kratos.ServerConfigurations{{URL: kratosPublicEndpoint}}
+	cj, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
 	conf.HTTPClient = &http.Client{Jar: cj}
-	return kratos.NewAPIClient(conf)
+	return &server{
+		KratosAPIClient:      kratos.NewAPIClient(conf),
+		KratosPublicEndpoint: kratosPublicEndpoint,
+		Port:                 ":4455",
+	}, nil
 }
 
 // writeError writes error to the response
@@ -231,9 +253,9 @@ func writeError(w http.ResponseWriter, statusCode int, err error) {
 
 // ensureCookieFlowID is a middleware function that ensures that a request contains
 // flow ID in url query parameters and cookie in header
-func ensureCookieFlowID(flowType string, next func(w http.ResponseWriter, r *http.Request, cookie, flowID string)) http.HandlerFunc {
+func (s *server) ensureCookieFlowID(flowType string, next func(w http.ResponseWriter, r *http.Request, cookie, flowID string)) http.HandlerFunc {
 	// create redirect url based on flow type
-	redirectURL := fmt.Sprintf("http://127.0.0.1:4433/self-service/%s/browser", flowType)
+	redirectURL := fmt.Sprintf("%s/self-service/%s/browser", s.KratosPublicEndpoint, flowType)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		// get flowID from url query parameters

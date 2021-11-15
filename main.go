@@ -344,15 +344,29 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// accept consent request
+	// get cookie from headers
+	cookie := r.Header.Get("cookie")
+	// get session details
+	session, _, err := s.KratosAPIClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	// accept consent request and add verifiable address to id_token in session
 	acceptConsentRes, err := s.HydraAPIClient.Admin.AcceptConsentRequest(&hydra_admin.AcceptConsentRequestParams{
 		Context:          ctx,
 		ConsentChallenge: challenge,
 		Body: &hydra_models.AcceptConsentRequest{
+			GrantScope:  []string{"openid"},
 			Remember:    true,
 			RememberFor: 3600,
+			Session: &hydra_models.ConsentRequestSession{
+				IDToken: struct{ Email string }{Email: session.Identity.VerifiableAddresses[0].Value},
+			},
 		},
 	})
+
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return

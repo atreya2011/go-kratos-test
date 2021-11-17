@@ -1,6 +1,6 @@
 version: v0.8.0-alpha.3
 
-dsn: memory
+dsn: postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
 
 serve:
   public:
@@ -84,7 +84,7 @@ hashers:
     key_length: 16
 
 identity:
-  default_schema_url: file:///etc/config/kratos/identity.schema.json
+  default_schema_url: file:///etc/kratos/identity-schemas/service/json/person.schema.json
 
 courier:
   smtp:

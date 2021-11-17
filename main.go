@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/atreya2011/kratos-test/generated/go/service"
 	"github.com/go-openapi/strfmt"
 	hydra "github.com/ory/hydra-client-go/client"
 	hydra_admin "github.com/ory/hydra-client-go/client/admin"
@@ -360,7 +361,7 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 			Remember:    true,
 			RememberFor: 3600,
 			Session: &hydra_models.ConsentRequestSession{
-				IDToken: struct{ Email string }{Email: session.Identity.VerifiableAddresses[0].Value},
+				IDToken: service.PersonSchemaJsonTraits{Email: session.Identity.VerifiableAddresses[0].Value},
 			},
 		},
 	})

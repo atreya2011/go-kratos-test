@@ -1,19 +1,19 @@
 version: v0.8.0-alpha.3
 
-dsn: postgres://kratos:secret@0.0.0.0:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+dsn: memory
 
 serve:
   public:
-    base_url: http://127.0.0.1:4433/
+    base_url: http://localhost:4433/
     cors:
       enabled: true
   admin:
-    base_url: http://127.0.0.1:4434/
+    base_url: http://localhost:4434/
 
 selfservice:
-  default_browser_return_url: http://127.0.0.1:4455/
+  default_browser_return_url: http://localhost:4455/
   whitelisted_return_urls:
-    - http://127.0.0.1:4455
+    - http://localhost:4455
 
   methods:
     password:
@@ -26,40 +26,40 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://127.0.0.1:4455/error
+      ui_url: http://localhost:4455/error
 
     settings:
-      ui_url: http://127.0.0.1:4455/settings
+      ui_url: http://localhost:4455/settings
       privileged_session_max_age: 15m
 
     recovery:
       enabled: true
-      ui_url: http://127.0.0.1:4455/recovery
+      ui_url: http://localhost:4455/recovery
 
     verification:
       enabled: true
-      ui_url: http://127.0.0.1:4455/verification
+      ui_url: http://localhost:4455/verification
       after:
-        default_browser_return_url: http://127.0.0.1:4455/verified
+        default_browser_return_url: http://localhost:4455/verified
 
     logout:
       after:
-        default_browser_return_url: http://127.0.0.1:4455/login
+        default_browser_return_url: http://localhost:4455/login
 
     login:
       lifespan: 10m
-      ui_url: http://127.0.0.1:4455/login
+      ui_url: http://localhost:4455/login
       after:
-        default_browser_return_url: "http://127.0.0.1:4455/dashboard"
+        default_browser_return_url: "http://localhost:4455/dashboard"
         password:
           hooks:
             - hook: require_verified_address
 
     registration:
       lifespan: 10m
-      ui_url: http://127.0.0.1:4455/registration
+      ui_url: http://localhost:4455/registration
       after:
-        default_browser_return_url: http://127.0.0.1:4455/registered
+        default_browser_return_url: http://localhost:4455/registered
 
 log:
   level: debug

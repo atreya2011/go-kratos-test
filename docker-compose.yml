@@ -8,16 +8,19 @@ networks:
 services:
   kratos-migrate:
     depends_on:
-      - auth-provider
+      - auth-db
     container_name: kratos-migrate
     image: oryd/kratos:v0.8.0-alpha.3
     environment:
-      - DSN=postgres://auth:secret@auth-provider:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
     command: migrate sql -e --yes
     volumes:
       - type: bind
         source: ./config
         target: /etc/config/kratos
+      - type: bind
+        source: ./identity-schemas
+        target: /home/kratos/identity-schemas
     networks:
       - intranet
 
@@ -27,7 +30,7 @@ services:
       - kratos-migrate
     image: oryd/kratos:v0.8.0-alpha.3
     environment:
-      - DSN=postgres://auth:secret@auth-provider:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier # watch-courier is set for sending verification/recovery emails
     volumes:
       - type: bind
@@ -39,9 +42,9 @@ services:
     networks:
       - intranet
 
-  auth-provider:
+  auth-db:
     image: postgres:alpine
-    container_name: auth-provider
+    container_name: auth-db
     ports:
       - "5432:5432"
     environment:

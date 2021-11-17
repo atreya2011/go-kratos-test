@@ -36,7 +36,7 @@ type server struct {
 
 func main() {
 	// create server
-	s, err := NewServer("http://127.0.0.1:4433")
+	s, err := NewServer("http://localhost:4433")
 	if err != nil {
 		log.Fatalln(err)
 	}

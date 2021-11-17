@@ -16,7 +16,7 @@ generate:
 			basefilename=$$(basename $${yamlschema_filename} .schema.yaml); \
 			jsonschema_filename=$${basefilename}.schema.json; \
 			go_filename=$${basefilename}.go; \
-			ts_filename=$${basefilename}.ts; \
+			ts_filename=$${basefilename}.d.ts; \
 			echo "Generating $$jsonschema_filename for $${folder}"; \
 			yq eval --output-format=json $${yamlschema_filename} > $(SCHEMA_DIR)/$${folder}/json/$${jsonschema_filename}; \
 			echo "Generating $${go_filename} for $${folder}"; \

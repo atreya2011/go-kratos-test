@@ -1,0 +1,53 @@
+name: generate
+
+on:
+  push:
+    paths:
+      - 'identity-schemas/**'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.*
+
+      - name: Use cache
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install tools
+        run: make install
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v4
+        with:
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          git-user-signingkey: true
+          git-commit-gpgsign: true
+          git-tag-gpgsign: true
+
+      - name: Generate code & commit
+        run: |
+          make
+          git add .
+          if [ -n "$(git status --porcelain)" ]
+          then
+            git commit -S -m "chore: generate json-schema, go code & ts typedefs"
+            git push "https://token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref }}
+          else
+            echo "No changes, skipping..."
+          fi

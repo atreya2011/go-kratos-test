@@ -42,6 +42,7 @@
           {{ if .UI.Messages }}{{ range .UI.Messages }}<div class="{{ if eq .Type "error"}}bg-red-500{{ else }}bg-green-500{{ end }} text-white rounded px-4 py-3 text-sm">{{.Text}}</div>{{ end }}{{ end }}
           {{ range .UI.Nodes }}
           {{ if eq .Attributes.UiNodeInputAttributes.Type "submit" }}
+          {{ if eq .Attributes.UiNodeInputAttributes.Value "microsoft" }}
           <div class="flex flex-wrap items-center justify-between">
             <button 
               class="w-full bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -51,23 +52,24 @@
               {{.Meta.Label.Text}}
             </button>
           </div>
+          {{ end }}
           {{ else }}
           <div {{ if eq .Attributes.UiNodeInputAttributes.Type "hidden" }}class="-mb-2"{{ end }}>
             {{ if .Meta.Label }}
-            <label 
+            <!-- <label 
               for={{.Attributes.UiNodeInputAttributes.Name}} 
               class="block text-gray-700 text-sm font-semibold mb-0.5">
               {{.Meta.Label.Text}}
-            </label>
+            </label> -->
             {{ end }}
-            <input
+            <!-- <input
               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               {{ if .Attributes.UiNodeInputAttributes.Disabled }}disabled{{ end }}
               {{ if .Attributes.UiNodeInputAttributes.Required }}required{{ end }}
               type={{.Attributes.UiNodeInputAttributes.Type}}
               {{ if .Meta.Label }}placeholder="Enter {{.Meta.Label.Text}}"{{ end }}
               name={{.Attributes.UiNodeInputAttributes.Name}}
-              value={{.Attributes.UiNodeInputAttributes.Value}}>
+              value={{.Attributes.UiNodeInputAttributes.Value}}> -->
             {{ if .Messages }}{{ range .Messages}}<div class="text-red-600 text-xs mb-2">{{.Text}}</div>{{ end }}{{ end }}
           </div>
           {{ end }}
@@ -75,7 +77,7 @@
       </form>
       {{ end }}
       {{ if eq .Title "Login" }}
-      <div class="flex items-center justify-between mt-3.5 mb-1">
+      <!-- <div class="flex items-center justify-between mt-3.5 mb-1">
         <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/registration">
           Register
         </a>
@@ -85,7 +87,7 @@
         <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/verification">
           Resend Verification Email
         </a>
-      </div>
+      </div> -->
     </div>
     {{ end }}
   </div>

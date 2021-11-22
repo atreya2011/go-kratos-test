@@ -24,6 +24,19 @@ selfservice:
       config:
         lifespan: 15m
 
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: microsoft
+            provider: microsoft
+            client_id: .... # Replace this with the Application ID from the App Registration
+            client_secret: .... # Replace this with the generated Secret value from the App Registration
+            tenant: consumers
+            mapper_url: file:///etc/kratos/config/oidc.microsoft.jsonnet
+            scope:
+              - profile
+              - email
   flows:
     error:
       ui_url: http://localhost:4455/error
@@ -60,6 +73,10 @@ selfservice:
       ui_url: http://localhost:4455/registration
       after:
         default_browser_return_url: http://localhost:4455/registered
+        oidc:
+          default_browser_return_url: http://localhost:4455/dashboard
+          hooks:
+            - hook: session
 
 log:
   level: debug

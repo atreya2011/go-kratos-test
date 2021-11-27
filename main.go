@@ -36,7 +36,7 @@ type server struct {
 
 func main() {
 	// create server
-	s, err := NewServer("http://localhost:4433")
+	s, err := NewServer(4433)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -226,10 +226,10 @@ func (s *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	templateData.Render(w)
 }
 
-func NewServer(kratosPublicEndpoint string) (*server, error) {
+func NewServer(kratosPublicEndpointPort int) (*server, error) {
 	// create a new kratos client for self hosted server
 	conf := kratos.NewConfiguration()
-	conf.Servers = kratos.ServerConfigurations{{URL: kratosPublicEndpoint}}
+	conf.Servers = kratos.ServerConfigurations{{URL: fmt.Sprintf("http://kratos:%d", kratosPublicEndpointPort)}}
 	cj, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func NewServer(kratosPublicEndpoint string) (*server, error) {
 	conf.HTTPClient = &http.Client{Jar: cj}
 	return &server{
 		KratosAPIClient:      kratos.NewAPIClient(conf),
-		KratosPublicEndpoint: kratosPublicEndpoint,
+		KratosPublicEndpoint: fmt.Sprintf("http://localhost:%d", kratosPublicEndpointPort),
 		Port:                 ":4455",
 	}, nil
 }

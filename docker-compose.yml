@@ -34,8 +34,8 @@ services:
         source: ./identity-schemas
         target: /etc/kratos/identity-schemas
     ports:
-      - "4433:4433" # public
-      - "4434:4434" # admin
+      - 4433:4433 # public
+      - 4434:4434 # admin
     networks:
       - intranet
 
@@ -43,7 +43,7 @@ services:
     image: postgres:alpine
     container_name: auth-db
     ports:
-      - "5432:5432"
+      - 5432:5432
     environment:
       - POSTGRES_USER=auth
       - POSTGRES_PASSWORD=secret
@@ -54,7 +54,23 @@ services:
   mailslurper:
     image: oryd/mailslurper:latest-smtps
     ports:
-      - '4436:4436'
-      - '4437:4437'
+      - 4436:4436
+      - 4437:4437
+    networks:
+      - intranet
+
+  self-service-go:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: self-service-go
+    depends_on:
+      - auth-db
+      - kratos
+    volumes:
+      - $PWD:/src
+    ports:
+      - 4455:4455
+    command: wait-for-it.sh -t 30 auth-db:5432 -- sh -c "reflex -s -r '\.go$$' -r '\.html$$' -- go run main.go"
     networks:
       - intranet

@@ -71,6 +71,5 @@ services:
       - $PWD:/src
     ports:
       - 4455:4455
-    command: wait-for-it.sh -t 30 auth-db:5432 -- sh -c "reflex -s -r '\.go$$' -r '\.html$$' -- go run main.go"
     networks:
       - intranet

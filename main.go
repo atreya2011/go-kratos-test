@@ -63,48 +63,10 @@ func main() {
 
 	http.HandleFunc("/auth/login", s.handleHydraLogin)
 	http.HandleFunc("/auth/consent", s.handleHydraConsent)
-	http.HandleFunc("/acceptLogin", s.handleAcceptLogin)
 
 	// start server
 	log.Println("Auth Server listening on port 4455")
 	log.Fatalln(http.ListenAndServe(s.Port, http.DefaultServeMux))
-}
-
-// handleAcceptLogin handles accepts login request from hydra
-func (s *server) handleAcceptLogin(w http.ResponseWriter, r *http.Request) {
-	// get cookie from headers
-	cookie := r.Header.Get("cookie")
-	// get session details
-	session, _, err := s.KratosAPIClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
-	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
-		return
-	}
-	// marshal session.identity.traits to json
-	traitsJSON, err := json.Marshal(session.Identity.Traits)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	// get login challenge from url query parameters
-	challenge := r.URL.Query().Get("login_challenge")
-	subject := string(traitsJSON)
-	// accept hydra login request
-	res, err := s.HydraAPIClient.Admin.AcceptLoginRequest(&hydra_admin.AcceptLoginRequestParams{
-		Context:        ctx,
-		LoginChallenge: challenge,
-		Body: &hydra_models.AcceptLoginRequest{
-			Remember:    true,
-			RememberFor: 3600,
-			Subject:     &subject,
-		},
-	})
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	http.Redirect(w, r, *res.GetPayload().RedirectTo, http.StatusFound)
 }
 
 // handleLogin handles kratos login flow
@@ -112,19 +74,17 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// get login challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
 
-	if challenge == "" {
-		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized"))
-		return
-	}
-
 	// build return_to url with hydra login challenge as url query parameter
 	returnToParams := url.Values{
 		"login_challenge": []string{challenge},
 	}
-	returnTo := "/acceptLogin?" + returnToParams.Encode()
+	returnTo := "/auth/login?" + returnToParams.Encode()
 	// build redirect url with return_to as url query parameter
+	// refresh=true forces a new login from kratos regardless of browser sessions
+	// this is important because we are letting Hydra handle sessions
 	redirectToParam := url.Values{
 		"return_to": []string{returnTo},
+		"refresh":   []string{"true"},
 	}
 	redirectTo := fmt.Sprintf("%s/self-service/login/browser?", s.KratosPublicEndpoint) + redirectToParam.Encode()
 
@@ -309,8 +269,15 @@ func (s *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 // handleHydraLogin handles login request from hydra
 func (s *server) handleHydraLogin(w http.ResponseWriter, r *http.Request) {
-	// get challenge from url query parameters
+	// get login challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
+	// redirect to login page if there is no login challenge
+	if challenge == "" {
+		http.Redirect(w, r, "/login", http.StatusFound)
+		return
+	}
+
+	// get login request from hydra
 	_, err := s.HydraAPIClient.Admin.GetLoginRequest(&hydra_admin.GetLoginRequestParams{
 		Context:        ctx,
 		LoginChallenge: challenge,
@@ -319,12 +286,45 @@ func (s *server) handleHydraLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
-	// build login url with challenge as url query parameter
-	params := url.Values{
-		"login_challenge": []string{challenge},
+
+	// get cookie from headers
+	cookie := r.Header.Get("cookie")
+
+	// check for kratos session details
+	session, _, err := s.KratosAPIClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
+	// if there is no session, redirect to login page with login challenge
+	if err != nil {
+		// build login url with challenge as url query parameter
+		params := url.Values{
+			"login_challenge": []string{challenge},
+		}
+		loginURL := "/login?" + params.Encode()
+		http.Redirect(w, r, loginURL, http.StatusFound)
+		return
 	}
-	loginURL := "/login?" + params.Encode()
-	http.Redirect(w, r, loginURL, http.StatusFound)
+	// marshal session.identity.traits to json
+	traitsJSON, err := json.Marshal(session.Identity.Traits)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	subject := string(traitsJSON)
+	// accept hydra login request
+	res, err := s.HydraAPIClient.Admin.AcceptLoginRequest(&hydra_admin.AcceptLoginRequestParams{
+		Context:        ctx,
+		LoginChallenge: challenge,
+		Body: &hydra_models.AcceptLoginRequest{
+			Remember:    true,
+			RememberFor: 3600,
+			Subject:     &subject,
+		},
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	http.Redirect(w, r, *res.GetPayload().RedirectTo, http.StatusFound)
 }
 
 // handleHydraConsent shows hydra consent screen

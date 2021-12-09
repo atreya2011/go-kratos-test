@@ -111,6 +111,11 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// get login challenge from url query parameters
 	challenge := r.URL.Query().Get("login_challenge")
 
+	if challenge == "" {
+		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
 	// build return_to url with hydra login challenge as url query parameter
 	returnToParams := url.Values{
 		"login_challenge": []string{challenge},

@@ -27,6 +27,8 @@ services:
     image: oryd/hydra:v1.10.6
     environment:
       - DSN=postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+      - SECRETS_SYSTEM=youReallyNeedToChangeThis
+    restart: on-failure
     command: migrate sql -e --yes
     networks:
       - intranet

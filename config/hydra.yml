@@ -17,7 +17,7 @@ oidc:
       salt: youReallyNeedToChangeThis
 
 urls:
-  login: http://localhost:4455/auth/login
+  login: http://localhost:4455/login
   consent: http://localhost:4455/auth/consent
   logout: http://localhost:4455/consent
   error: http://localhost:4455/error
@@ -43,5 +43,4 @@ secrets:
 
 log:
   leak_sensitive_values: true
-  format: json
   level: debug

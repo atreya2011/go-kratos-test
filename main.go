@@ -325,20 +325,19 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	challenge := r.URL.Query().Get("consent_challenge")
 
 	if challenge == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, e := w.Write([]byte("Missing consent challenge")); e != nil {
-			log.Println(e)
-		}
+		log.Println("Missing consent challenge")
+		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
 		return
 	}
 
 	// get consent request
-	_, err := s.HydraAPIClient.Admin.GetConsentRequest(&hydra_admin.GetConsentRequestParams{
+	getConsentRes, err := s.HydraAPIClient.Admin.GetConsentRequest(&hydra_admin.GetConsentRequestParams{
 		Context:          ctx,
 		ConsentChallenge: challenge,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		log.Println(err)
+		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
 		return
 	}
 
@@ -347,7 +346,8 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	// get session details
 	session, _, err := s.KratosAPIClient.V0alpha2Api.ToSession(ctx).Cookie(cookie).Execute()
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusFound)
+		log.Println(err)
+		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
 		return
 	}
 
@@ -356,7 +356,7 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 		Context:          ctx,
 		ConsentChallenge: challenge,
 		Body: &hydra_models.AcceptConsentRequest{
-			GrantScope:  []string{"openid"},
+			GrantScope:  getConsentRes.Payload.RequestedScope,
 			Remember:    true,
 			RememberFor: 3600,
 			Session: &hydra_models.ConsentRequestSession{
@@ -366,7 +366,8 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
+		log.Println(err)
+		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
 		return
 	}
 

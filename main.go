@@ -105,7 +105,7 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		returnToParams := url.Values{
 			"login_challenge": []string{challenge},
 		}
-		returnTo := "/auth/login?" + returnToParams.Encode()
+		returnTo := "/login?" + returnToParams.Encode()
 		// build redirect url with return_to as url query parameter
 		// refresh=true forces a new login from kratos regardless of browser sessions
 		// this is important because we are letting Hydra handle sessions

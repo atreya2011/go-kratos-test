@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
@@ -20,6 +21,7 @@ import (
 	hydra "github.com/ory/hydra-client-go/client"
 	hydra_admin "github.com/ory/hydra-client-go/client/admin"
 	hydra_models "github.com/ory/hydra-client-go/models"
+	log "github.com/sirupsen/logrus"
 )
 
 var ctx = context.Background()
@@ -76,7 +78,41 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// redirect to login page if there is no login challenge or flow id in url query parameters
 	if challenge == "" && flowID == "" {
 		log.Println("No login challenge found or flow ID found in URL Query Parameters")
-		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		if err != nil {
+			log.Errorf("generate state failed: %v", err)
+			return
+		}
+
+		state := base64.StdEncoding.EncodeToString(b)
+
+		/**
+				curl -X POST 'http://localhost:4445/clients' \
+				-H 'Content-Type: application/json' \
+				--data-raw '{
+		    		"client_id": "myclient",
+		    		"client_name": "MyApp",
+		    		"client_secret": "mysecret",
+		    		"grant_types": ["authorization_code", "refresh_token"],
+		    		"redirect_uris": ["http://localhost:1234/callbacks"],
+		    		"response_types": ["code", "id_token"],
+		    		"scope": "offline users.write users.read users.edit users.delete",
+		    		"token_endpoint_auth_method": "client_secret_post"
+				}'
+		*/
+
+		params := url.Values{
+			"response_type": []string{"code"},
+			"refresh_type":  []string{"code"},
+			"client_id":     []string{"ur-oauth-client-id"},
+			"scope":         []string{"offline"},
+			"redirect_uri":  []string{"http://127.0.0.1:4455/dashboard"},
+			"state":         []string{state},
+		}
+		redirectTo := fmt.Sprintf("%s/oauth2/auth?", s.HydraPublicEndpoint) + params.Encode()
+		log.Infof("redirect to hydra, url: %s", redirectTo)
+		http.Redirect(w, r, redirectTo, http.StatusFound)
 		return
 	}
 

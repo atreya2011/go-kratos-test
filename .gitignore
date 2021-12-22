@@ -1,0 +1,6 @@
+*.swp
+*.swap
+*.test
+*.log
+.vscode
+.vscode/settings.json

@@ -76,9 +76,11 @@
       {{ end }}
       {{ if eq .Title "Login" }}
       <div class="flex items-center justify-between mt-3.5 mb-1">
+        {{ if .Metadata.Registration }}
         <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/registration">
           Register
         </a>
+        {{ end }}
         <a class="appearance-none inline-block align-center font-bold text-blue-500 hover:text-blue-800" href="/recovery">
           Forgot Password?
         </a>

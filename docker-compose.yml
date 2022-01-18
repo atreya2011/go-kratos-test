@@ -1,4 +1,3 @@
-
 version: '3.8'
 
 networks:
@@ -101,6 +100,7 @@ services:
     depends_on:
       - auth-db
       - kratos
+      - hydra
     volumes:
       - $PWD:/src
     ports:

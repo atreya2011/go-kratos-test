@@ -52,7 +52,7 @@ selfservice:
 
     logout:
       after:
-        default_browser_return_url: http://localhost:4455
+        default_browser_return_url: http://localhost:4455/login
 
     login:
       lifespan: 10m

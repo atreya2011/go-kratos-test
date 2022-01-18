@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-openapi/strfmt v0.21.7
-	github.com/ory/client-go v1.1.35
+	github.com/ory/client-go v1.1.44
 	github.com/ory/hydra-client-go v1.10.6
 	github.com/sirupsen/logrus v1.9.3
 )

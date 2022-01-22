@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
 	"strings"
 
 	kratos "github.com/ory/kratos-client-go"
@@ -50,6 +51,7 @@ func main() {
 	http.HandleFunc("/dashboard", s.handleDashboard)
 	http.HandleFunc("/recovery", s.ensureCookieFlowID("recovery", s.handleRecovery))
 	http.HandleFunc("/settings", s.ensureCookieFlowID("settings", s.handleSettings))
+	http.HandleFunc("/", s.handleIndex)
 
 	// start server
 	log.Println("Auth Server listening on port 4455")
@@ -310,4 +312,10 @@ func (td *templateData) Render(w http.ResponseWriter) {
 	if err := tmpl.Execute(w, td); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 	}
+}
+
+func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	b, _ := httputil.DumpRequest(r, true)
+	log.Println(string(b))
+	w.WriteHeader(200)
 }

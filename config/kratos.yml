@@ -39,6 +39,13 @@ selfservice:
     verification:
       enabled: true
       ui_url: http://localhost:4455/verification
+      after:
+        hooks:
+          - hook: web_hook
+            config:
+              url: http://self-service-go:4455/
+              method: POST # GET, DELETE, etc
+              body: file:///etc/kratos/config/identity.jsonnet
 
     logout:
       after:
@@ -58,6 +65,12 @@ selfservice:
       ui_url: http://localhost:4455/registration
       after:
         default_browser_return_url: http://localhost:4455/registered
+        hooks:
+          - hook: web_hook
+            config:
+              url: http://self-service-go:4455/
+              method: POST # GET, DELETE, etc
+              body: file:///etc/kratos/config/identity.jsonnet
 
 log:
   level: debug

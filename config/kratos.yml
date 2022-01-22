@@ -39,8 +39,6 @@ selfservice:
     verification:
       enabled: true
       ui_url: http://localhost:4455/verification
-      after:
-        default_browser_return_url: http://localhost:4455/verified
 
     logout:
       after:

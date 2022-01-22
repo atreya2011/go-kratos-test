@@ -48,7 +48,6 @@ func main() {
 	http.HandleFunc("/verification", s.ensureCookieFlowID("verification", s.handleVerification))
 	http.HandleFunc("/registered", ensureCookieReferer(s.handleRegistered))
 	http.HandleFunc("/dashboard", s.handleDashboard)
-	http.HandleFunc("/verified", ensureCookieReferer(s.handleVerified))
 	http.HandleFunc("/recovery", s.ensureCookieFlowID("recovery", s.handleRecovery))
 	http.HandleFunc("/settings", s.ensureCookieFlowID("settings", s.handleSettings))
 
@@ -140,9 +139,19 @@ func (s *server) handleVerification(w http.ResponseWriter, r *http.Request, cook
 		return
 	}
 
+	title := "Verify your Email address"
+	ui := &flow.Ui
+	if flow.Ui.Messages != nil {
+		for _, message := range flow.Ui.Messages {
+			if strings.ToLower(message.GetText()) == "you successfully verified your email address." {
+				title = "Verification Complete"
+				ui = nil
+			}
+		}
+	}
 	templateData := templateData{
-		Title: "Verify your Email address",
-		UI:    &flow.Ui,
+		Title: title,
+		UI:    ui,
 	}
 	// render template index.html
 	templateData.Render(w)
@@ -152,15 +161,6 @@ func (s *server) handleVerification(w http.ResponseWriter, r *http.Request, cook
 func (s *server) handleRegistered(w http.ResponseWriter, r *http.Request) {
 	templateData := templateData{
 		Title: "Registration Complete",
-	}
-	// render template index.html
-	templateData.Render(w)
-}
-
-// handleVerified displays verfification complete message to user
-func (s *server) handleVerified(w http.ResponseWriter, r *http.Request) {
-	templateData := templateData{
-		Title: "Verification Complete",
 	}
 	// render template index.html
 	templateData.Render(w)

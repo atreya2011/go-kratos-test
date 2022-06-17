@@ -1,4 +1,4 @@
-version: v0.8.0-alpha.3
+version: v0.10.1
 
 dsn: postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
 
@@ -12,7 +12,7 @@ serve:
 
 selfservice:
   default_browser_return_url: http://localhost:4455/
-  whitelisted_return_urls:
+  allowed_return_urls:
     - http://localhost:4455
 
   methods:
@@ -95,7 +95,10 @@ hashers:
     key_length: 16
 
 identity:
-  default_schema_url: file:///etc/kratos/identity-schemas/service/json/person.schema.json
+  schemas:
+    - id: default
+      url: file:///etc/kratos/identity-schemas/service/json/person.schema.json
+  default_schema_id: "default"
 
 courier:
   smtp:

@@ -19,9 +19,8 @@ oidc:
 urls:
   login: http://localhost:4455/login
   consent: http://localhost:4455/auth/consent
-  logout: http://localhost:4455/consent
+  logout: http://localhost:4455/logout
   error: http://localhost:4455/error
-  post_logout_redirect: http://localhost:3000/
   self:
     public: http://localhost:4444/
     issuer: http://localhost:4444/

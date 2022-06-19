@@ -98,6 +98,13 @@ func getSessionValue(w http.ResponseWriter, r *http.Request, key string) interfa
 	return value
 }
 
+func deleteSessionValues(w http.ResponseWriter, r *http.Request) {
+	session := initSession(r)
+	session.Options.MaxAge = -1
+	log.Print("deleted session")
+	session.Save(r, w)
+}
+
 func main() {
 	// create server
 	s, err := NewServer(4433, 4444, 4445)
@@ -333,11 +340,39 @@ func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 func (s *server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	// get cookie from headers
 	cookie := r.Header.Get("cookie")
+	// get logout challenge from url query parameters
+	challenge := r.URL.Query().Get("logout_challenge")
 	// create self-service logout flow for browser
 	flow, _, err := s.KratosAPIClient.FrontendApi.CreateBrowserLogoutFlow(r.Context()).Cookie(cookie).Execute()
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
+		if challenge == "" {
+			v := getSessionValue(w, r, "idToken")
+			idToken, ok := v.(string)
+			if !ok {
+				idToken = ""
+			}
+			http.Redirect(w, r, fmt.Sprintf("http://localhost:4444/oauth2/sessions/logout?id_token_hint=%s", idToken), http.StatusSeeOther)
+			return
+		} else {
+			getLogoutRequestRes, _, err := s.HydraAPIClient.AdminApi.GetLogoutRequest(r.Context()).
+				LogoutChallenge(challenge).Execute()
+			log.Println(err)
+			writeError(w, http.StatusUnauthorized, err)
+			acceptLogoutRequestRes, _, err := s.HydraAPIClient.AdminApi.AcceptLogoutRequest(r.Context()).
+				LogoutChallenge(challenge).Execute()
+			if err != nil {
+				log.Println(err)
+				writeError(w, http.StatusUnauthorized, err)
+			}
+			redirectURL := acceptLogoutRequestRes.RedirectTo
+			if getLogoutRequestRes.Client != nil {
+				redirectURL = getLogoutRequestRes.Client.PostLogoutRedirectUris[0]
+			}
+			log.Println("logout redirect", redirectURL)
+			deleteSessionValues(w, r)
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+			return
+		}
 	}
 	// redirect to logout url if session is valid
 	if flow != nil {
@@ -513,6 +548,9 @@ func (s *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Refresh Token:\n\t%s\n", token.RefreshToken)
 	log.Printf("Expires in:\n\t%s\n", token.Expiry.Format(time.RFC1123))
 	log.Printf("ID Token:\n\t%v\n\n", idt)
+
+	// store idToken value in session
+	setSessionValue(w, r, "idToken", idt)
 
 	templateData := templateData{
 		Title:   "Session Details",

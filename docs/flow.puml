@@ -1,0 +1,27 @@
+@startuml flow
+
+participant "OAuth 2 Client\n(Browser)" as client
+participant "Broker UI" as idp
+participant "ORY Hydra" as hydra
+participant "ORY Kratos" as kratos
+
+client -> hydra : Initiates OAuth2 Authorization Code \n(or) Implicit Flow
+hydra -> hydra: No end user session available\n(not authenticated)
+hydra -> idp : Redirects end user to login endpoint with login challenge\nHTTP 302 Found /login
+idp -> idp : If no flow id available\nGET /oauth2/auth/requests/login\n(fetch details of OAuth Login Request)
+idp -> kratos : No end user session available (not authenticated)\nFollow link to /self-service/login/browser?return_to="/login?refresh=true&login_challenge=xxx"
+kratos -> kratos : Create and store new login flow
+kratos -> idp : HTTP 302 Found <selfservice.flows.login.ui_url>?flow=<flow-id>
+idp -> client : Show Login UI
+client -> idp : Fills form and clicks login
+idp -> kratos : Submits Form\nPOST /self-service/login/browser?flow=<flow-id>
+kratos -> kratos : Validates and processes form payloads\n(Authenticates user credentials)
+kratos -> client : Set session cookie
+idp -> hydra : Redirects end user to redirect url with login verifier\nHTTP 302 Found
+hydra -> idp : Redirects end user to the consent endpoint with the consent challenge\nHTTP 302 Found /oauth2/auth/requests/consent
+idp -> idp : Fetch details about the consent request and accept it\nGet info about requested scopes etc. (e.g openid, offline)
+idp -> hydra : Redirects to redirect url with consent verifier
+hydra -> hydra : Verifies grant
+hydra -> client : Transmits Access Token
+
+@enduml

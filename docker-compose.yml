@@ -23,7 +23,7 @@ services:
       - auth-db
       - kratos-migrate
     container_name: hydra-migrate
-    image: oryd/hydra:v1.10.6
+    image: oryd/hydra:v1.11.8
     environment:
       - DSN=postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
       - SECRETS_SYSTEM=youReallyNeedToChangeThis
@@ -34,7 +34,7 @@ services:
 
   hydra:
     container_name: hydra
-    image: oryd/hydra:v1.10.6
+    image: oryd/hydra:v1.11.8
     depends_on:
       - auth-db
       - hydra-migrate

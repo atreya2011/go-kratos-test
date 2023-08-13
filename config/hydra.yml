@@ -1,12 +1,12 @@
 ## ORY Hydra Configuration
-version: v1.11.8
+version: v2.1.2
 
 serve:
   public:
     cors:
       enabled: true
 
-dsn: postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+dsn: postgres://hydra:secret@hydra-db:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
 
 oidc:
   subject_identifiers:

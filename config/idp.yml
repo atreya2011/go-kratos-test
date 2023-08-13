@@ -1,5 +1,3 @@
 client_id: auth-code-client
 client_secret: secret
-client_metadata: 
-  registration: true
 port: 4455

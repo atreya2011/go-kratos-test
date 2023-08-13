@@ -6,7 +6,6 @@ require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/gorilla/sessions v1.2.1
 	github.com/ory/client-go v1.1.35
-	github.com/ory/hydra-client-go v1.11.8
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/oauth2 v0.11.0
 	gopkg.in/yaml.v3 v3.0.1

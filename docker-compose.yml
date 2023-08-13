@@ -7,25 +7,25 @@ networks:
 services:
   kratos-migrate:
     depends_on:
-      - auth-db
+      - kratos-db
     container_name: kratos-migrate
     image: oryd/kratos:v1.0.0
     # to run db migrations we use the kratos-cli but don't need to mount the config directory
     # as we only require the DSN to be set as the environment variable for running the migrations
     environment:
-      - DSN=postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://kratos:secret@kratos-db:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
     command: migrate sql -e --yes
     networks:
       - intranet
 
   hydra-migrate:
     depends_on:
-      - auth-db
+      - hydra-db
       - kratos-migrate
     container_name: hydra-migrate
-    image: oryd/hydra:v1.11.8
+    image: oryd/hydra:v2.1.2
     environment:
-      - DSN=postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+      - DSN=postgres://hydra:secret@hydra-db:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
       - SECRETS_SYSTEM=youReallyNeedToChangeThis
     restart: on-failure
     command: migrate sql -e --yes
@@ -34,16 +34,16 @@ services:
 
   hydra:
     container_name: hydra
-    image: oryd/hydra:v1.11.8
+    image: oryd/hydra:v2.1.2
     depends_on:
-      - auth-db
+      - hydra-db
       - hydra-migrate
     ports:
       - 4444:4444 # Public port
       - 4445:4445 # Admin port
       - 5555:5555 # Port for hydra token user
     command:
-      serve -c /etc/hydra/config/hydra.yml all --dangerous-force-http
+      serve -c /etc/hydra/config/hydra.yml all --dev
     restart: on-failure # TODO figure out why we need this (incorporate health check into hydra migrate command?)
     networks:
       - intranet
@@ -72,15 +72,27 @@ services:
     networks:
       - intranet
 
-  auth-db:
+  kratos-db:
     image: postgres:alpine
-    container_name: auth-db
+    container_name: kratos-db
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_USER=auth
+      - POSTGRES_USER=kratos
       - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=auth
+      - POSTGRES_DB=kratos
+    networks:
+      - intranet
+
+  hydra-db:
+    image: postgres:alpine
+    container_name: hydra-db
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_USER=hydra
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=hydra
     networks:
       - intranet
 
@@ -98,8 +110,9 @@ services:
       dockerfile: ./Dockerfile
     container_name: self-service-go
     depends_on:
-      - auth-db
+      - kratos-db
       - kratos
+      - hydra-db
       - hydra
     volumes:
       - $PWD:/src

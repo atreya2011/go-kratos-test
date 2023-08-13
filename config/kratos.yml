@@ -1,6 +1,10 @@
 version: v1.0.0
 
-dsn: postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
+dsn: postgres://kratos:secret@kratos-db:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+
+oauth2_provider:
+  override_return_to: true
+  url: http://hydra:4445/
 
 serve:
   public:
@@ -14,6 +18,7 @@ selfservice:
   default_browser_return_url: http://localhost:4455/
   allowed_return_urls:
     - http://localhost:4455
+    - http://localhost:4444
 
   methods:
     password:

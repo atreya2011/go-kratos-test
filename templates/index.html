@@ -67,7 +67,7 @@
               type={{.Attributes.UiNodeInputAttributes.Type}}
               {{ if .Meta.Label }}placeholder="Enter {{.Meta.Label.Text}}"{{ end }}
               name={{.Attributes.UiNodeInputAttributes.Name}}
-              value={{.Attributes.UiNodeInputAttributes.Value}}>
+              value={{ if .Attributes.UiNodeInputAttributes.Value }}{{.Attributes.UiNodeInputAttributes.Value}}{{ end }}>
             {{ if .Messages }}{{ range .Messages}}<div class="text-red-600 text-xs mb-2">{{.Text}}</div>{{ end }}{{ end }}
           </div>
           {{ end }}

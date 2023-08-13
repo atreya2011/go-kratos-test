@@ -1,13 +1,13 @@
 module github.com/atreya2011/kratos-test
 
-go 1.17
+go 1.20
 
-require github.com/ory/kratos-client-go v0.10.1
+require github.com/ory/client-go v1.1.35
 
 require (
-	github.com/golang/protobuf v1.5.2 // indirect
-	golang.org/x/net v0.0.0-20220615171555-694bf12d69de // indirect
-	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/oauth2 v0.11.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 )

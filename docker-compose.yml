@@ -1,5 +1,5 @@
 
-version: '3.7'
+version: '3.8'
 
 networks:
   intranet:
@@ -10,7 +10,7 @@ services:
     depends_on:
       - auth-db
     container_name: kratos-migrate
-    image: oryd/kratos:v0.10.1
+    image: oryd/kratos:v1.0.0
     # to run db migrations we use the kratos-cli but don't need to mount the config directory
     # as we only require the DSN to be set as the environment variable for running the migrations
     environment:
@@ -23,7 +23,7 @@ services:
     container_name: kratos
     depends_on:
       - kratos-migrate
-    image: oryd/kratos:v0.10.1
+    image: oryd/kratos:v1.0.0
     # watch-courier is set for sending verification/recovery emails
     command: serve -c /etc/kratos/config/kratos.yml --dev --watch-courier
     volumes:

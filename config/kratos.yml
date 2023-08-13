@@ -1,4 +1,4 @@
-version: v0.10.1
+version: v1.0.0
 
 dsn: postgres://auth:secret@auth-db:5432/auth?sslmode=disable&max_conns=20&max_idle_conns=4
 
@@ -35,6 +35,9 @@ selfservice:
     recovery:
       enabled: true
       ui_url: http://localhost:4455/recovery
+      after:
+        hooks:
+          - hook: revoke_active_sessions
 
     verification:
       enabled: true

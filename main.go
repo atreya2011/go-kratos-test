@@ -418,7 +418,6 @@ func (s *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 	// get consent challenge from url query parameters
 	challenge := r.URL.Query().Get("consent_challenge")
-
 	if challenge == "" {
 		log.Println("Missing consent challenge")
 		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
@@ -443,24 +442,125 @@ func (s *server) handleHydraConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// accept consent request and add verifiable address to id_token in session
-	acceptConsentRes, _, err := s.HydraAPIClient.OAuth2Api.AcceptOAuth2ConsentRequest(r.Context()).ConsentChallenge(challenge).
-		AcceptOAuth2ConsentRequest(ory.AcceptOAuth2ConsentRequest{
-			GrantScope:  getConsentRes.RequestedScope,
-			Remember:    pointer.ToBool(true),
-			RememberFor: pointer.ToInt64(3600),
-			Session: &ory.AcceptOAuth2ConsentRequestSession{
-				IdToken: service.PersonSchemaJsonTraits{Email: session.Identity.VerifiableAddresses[0].Value},
-			},
-		}).Execute()
-
-	if err != nil {
-		log.Error(err)
-		writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
-		return
+	// if user has submitted consent form, process it and get granted scopes
+	var grantedScopes []string
+	var submittedConsentForm bool
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			log.Error(err)
+			writeError(w, http.StatusInternalServerError, err)
+			return
+		}
+		for key, values := range r.PostForm {
+			if key == "scopes" {
+				for _, value := range values {
+					grantedScopes = append(grantedScopes, value)
+				}
+			}
+		}
+		submittedConsentForm = true
 	}
 
-	http.Redirect(w, r, acceptConsentRes.RedirectTo, http.StatusFound)
+	switch {
+	// show the consent form only if user has not already granted scopes
+	case !submittedConsentForm && len(grantedScopes) == 0:
+		var consentUiNodes []ory.UiNode
+		for _, requestedScope := range getConsentRes.RequestedScope {
+			log.Println("requested scope", requestedScope)
+			consentUiNodes = append(consentUiNodes, ory.UiNode{
+				Attributes: ory.UiNodeAttributes{
+					UiNodeInputAttributes: &ory.UiNodeInputAttributes{
+						NodeType: "input",
+						Name:     "scopes",
+						Type:     "checkbox",
+						Value:    requestedScope,
+						Label: &ory.UiText{
+							Text: requestedScope,
+						},
+					},
+				},
+				Meta: ory.UiNodeMeta{
+					Label: &ory.UiText{
+						Text: requestedScope,
+					},
+				},
+				Type: "input",
+			})
+		}
+		consentUiNodes = append(consentUiNodes, ory.UiNode{
+			Attributes: ory.UiNodeAttributes{
+				UiNodeInputAttributes: &ory.UiNodeInputAttributes{
+					Name:     "method",
+					NodeType: "input",
+					Type:     "submit",
+				},
+			},
+			Meta: ory.UiNodeMeta{
+				Label: &ory.UiText{
+					Text: "Submit",
+				},
+			},
+			Type: "input",
+		})
+
+		consentUI := &ory.UiContainer{
+			Action: fmt.Sprintf("/auth/consent?consent_challenge=%s", getConsentRes.Challenge),
+			Method: http.MethodPost,
+			Messages: []ory.UiText{
+				{
+					Text: "Please confirm that you want to grant access to the following scopes:",
+					Type: "info",
+				},
+			},
+			Nodes: consentUiNodes,
+		}
+		// render template index.html
+		templateData := templateData{
+			Title: "Consent",
+			UI:    consentUI,
+		}
+		templateData.Render(w)
+		return
+
+	// reject the consent request if user has not granted scopes
+	case submittedConsentForm && len(grantedScopes) == 0:
+		rejectConsentRes, _, err := s.HydraAPIClient.OAuth2Api.RejectOAuth2ConsentRequest(r.Context()).
+			ConsentChallenge(challenge).
+			RejectOAuth2Request(ory.RejectOAuth2Request{
+				Error:            pointer.ToString("access denied"),
+				ErrorDescription: pointer.ToString("You must grant access to atleast one scope to continue"),
+				StatusCode:       pointer.ToInt64(http.StatusForbidden),
+			}).Execute()
+
+		if err != nil {
+			log.Error(err)
+			writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
+			return
+		}
+
+		http.Redirect(w, r, rejectConsentRes.RedirectTo, http.StatusFound)
+	// accept consent request and add verifiable address to id_token in session
+	// only if the user has granted scopes
+	default:
+		acceptConsentRes, _, err := s.HydraAPIClient.OAuth2Api.AcceptOAuth2ConsentRequest(r.Context()).
+			ConsentChallenge(challenge).
+			AcceptOAuth2ConsentRequest(ory.AcceptOAuth2ConsentRequest{
+				GrantScope:  grantedScopes,
+				Remember:    pointer.ToBool(true),
+				RememberFor: pointer.ToInt64(3600),
+				Session: &ory.AcceptOAuth2ConsentRequestSession{
+					IdToken: service.PersonSchemaJsonTraits{Email: session.Identity.VerifiableAddresses[0].Value},
+				},
+			}).Execute()
+
+		if err != nil {
+			log.Error(err)
+			writeError(w, http.StatusUnauthorized, errors.New("Unauthorized OAuth Client"))
+			return
+		}
+
+		http.Redirect(w, r, acceptConsentRes.RedirectTo, http.StatusFound)
+	}
 }
 
 func NewServer(kratosPublicEndpointPort, hydraPublicEndpointPort, hydraAdminEndpointPort int) (*server, error) {

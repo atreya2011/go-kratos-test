@@ -52,22 +52,28 @@
             </button>
           </div>
           {{ else }}
-          <div {{ if eq .Attributes.UiNodeInputAttributes.Type "hidden" }}class="-mb-2"{{ end }}>
+          <div 
+            {{ if eq .Attributes.UiNodeInputAttributes.Type "hidden" }}class="-mb-2"{{ end }}
+            {{ if eq .Attributes.UiNodeInputAttributes.Type "checkbox" }}class="flex items-center"{{ end }}
+            >
             {{ if .Meta.Label }}
+            {{ if ne .Attributes.UiNodeInputAttributes.Type "checkbox" }}
             <label 
               for={{.Attributes.UiNodeInputAttributes.Name}} 
               class="block text-gray-700 text-sm font-semibold mb-0.5">
               {{.Meta.Label.Text}}
             </label>
             {{ end }}
+            {{ end }}
             <input
-              class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              class="{{ if eq .Attributes.UiNodeInputAttributes.Type "checkbox" }}w-4 h-4 mr-1.5 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600{{ else }}shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline{{ end }}"
               {{ if .Attributes.UiNodeInputAttributes.Disabled }}disabled{{ end }}
               {{ if .Attributes.UiNodeInputAttributes.Required }}required{{ end }}
               type={{.Attributes.UiNodeInputAttributes.Type}}
               {{ if .Meta.Label }}placeholder="Enter {{.Meta.Label.Text}}"{{ end }}
               name={{.Attributes.UiNodeInputAttributes.Name}}
               value={{ if .Attributes.UiNodeInputAttributes.Value }}{{.Attributes.UiNodeInputAttributes.Value}}{{ end }}>
+            {{ if eq .Attributes.UiNodeInputAttributes.Type "checkbox" }}<label>{{.Attributes.UiNodeInputAttributes.Label.Text}}</label>{{ end}}
             {{ if .Messages }}{{ range .Messages}}<div class="text-red-600 text-xs mb-2">{{.Text}}</div>{{ end }}{{ end }}
           </div>
           {{ end }}

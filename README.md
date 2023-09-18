@@ -21,7 +21,7 @@ curl -X POST 'http://localhost:4445/admin/clients' \
   "post_logout_redirect_uris": ["http://localhost:4455/login"],
   "response_types": ["code", "id_token"],
   "scope": "openid offline",
-  "token_endpoint_auth_method": "client_secret_post",
+  "token_endpoint_auth_method": "client_secret_post"
 }' && \
 docker exec -it hydra-db psql -U hydra -c "UPDATE hydra_client SET id = 'auth-code-client' WHERE client_name = 'Test OAuth2 Client'"
 ```
